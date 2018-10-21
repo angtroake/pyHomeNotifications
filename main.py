@@ -43,7 +43,7 @@ def castTo(cc):
     cc.wait()
     
     mc = cc.media_controller
-    mc.play_media("http://192.168.2.28:2020/static/out.mp3", "audio/*")
+    mc.play_media("http://192.168.2.24:2020/static/out.mp3", "audio/*")
     mc.block_until_active()
 
     print(mc.status)
