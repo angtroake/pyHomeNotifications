@@ -1,13 +1,20 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from gtts import gTTS
 import time
 import pychromecast
 import json
+import datetime
+import _thread
+import os
 
 app = Flask(__name__)
 
 
 speaker = None
+
+# {text, time, filename}
+que = []
+
 
 cc = pychromecast.get_chromecasts(timeout=0.5)
 for c in cc:
@@ -24,35 +31,59 @@ def indexPage():
 @app.route("/notify", methods=["POST"])
 def notify():
     global speaker
-    text = request.json
-    print(text)
-    text = text["text"]
-    print(text)
+    global que
+
+    time = datetime.datetime.now()
+
+    filename = time.strftime("static/%f%S%M%H%d%m%Y.mp3")
+
+    text = request.json["text"]
     tts = gTTS(str(text), lang='en')
-    tts.save("static/out.mp3")
+    tts.save(filename)
 
     
-    
+    """
     if(speaker != None):
         castTo(speaker)
     
+    """
 
-    return render_template("index.html")
+    que.append((text, time, filename))
 
-def castTo(cc):
+
+    return jsonify("success")
+
+def castTo(cc, filename):
     cc.wait()
     
     mc = cc.media_controller
-    mc.play_media("http://192.168.2.28:2020/static/out.mp3", "audio/*")
+    mc.play_media("http://192.168.2.28:2020/" + filename, "audio/*")
     mc.block_until_active()
-
-    print(mc.status)
 
     mc.pause()
     time.sleep(5)
     mc.play()
 
 
-if __name__ == "__main__":
-    app.run(debug = True, host='0.0.0.0', port='2020')
 
+def castLoop():
+    global speaker
+
+    while True:
+        global que
+        if(len(que) > 0):
+            castTo(speaker, que[0][2])
+            print("played " + que[0][2])
+            _thread.start_new_thread(deleteFile, (que[0][2],))
+            del que[0]
+        time.sleep(3)
+
+def deleteFile(file):
+    time.sleep(5)
+    os.remove(file)
+
+
+if __name__ == "__main__":
+    _thread.start_new_thread(castLoop, ())
+    app.run(debug = True, host='0.0.0.0', port='2020')
+    
