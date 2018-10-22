@@ -57,7 +57,7 @@ def castTo(cc, filename):
     cc.wait()
     
     mc = cc.media_controller
-    mc.play_media("http://192.168.2.28:2020/" + filename, "audio/*")
+    mc.play_media("http://192.168.2.24:2020/" + filename, "audio/*")
     mc.block_until_active()
 
     mc.pause()
